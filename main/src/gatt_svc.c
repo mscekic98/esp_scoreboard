@@ -8,6 +8,7 @@
 #include "common.h"
 #include "heart_rate.h"
 #include "led.h"
+#include "scoreboard.h"
 
 /* Private function declarations */
 static int heart_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,

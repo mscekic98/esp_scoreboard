@@ -41,6 +41,7 @@ typedef struct {
 
 typedef struct t{
     set_score_struct set_result_array[7];
+    int number_of_sets_played;
 } match_result_struct;
 
 typedef struct {
@@ -63,6 +64,8 @@ int set_match_type(match_type_enum match_type);
 int setup_match_team(team_struct team, team_side_enum side);
 int set_official_status(official_status_enum official_status);
 int set_serving_side(int player_num);
+match_result_struct get_current_match_result();
+int set_match_result(match_result_struct match_result);
 
 
 #endif

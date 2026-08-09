@@ -5,22 +5,22 @@
 
 static player_struct player1 = {
     .alias = "P01",
-    .pid = 0,
+    .pid = 1,
     .elo = 0
 };
 static player_struct player2 = {
     .alias = "P02",
-    .pid = 0,
+    .pid = 2,
     .elo = 0
 };
 static player_struct player3 = {
     .alias = "P03",
-    .pid = 0,
+    .pid = 3,
     .elo = 0
 };
 static player_struct player4 = {
     .alias = "P04",
-    .pid = 0,
+    .pid = 4,
     .elo = 0
 };
 
@@ -59,6 +59,7 @@ static void store_set_result(){
     }
 
     match.match_progress.current_set_num++;
+    match.match_result.number_of_sets_played++;
 
 }
 
@@ -97,8 +98,66 @@ static void set_serving_player(player_struct player){
     match.match_progress.player_serving = player;
 }
 
+static int get_player_side_number(player_struct player){
+    if(match.match_type == singles){
+        if(player.pid == match.challenger_team.player1.pid){
+            return 1;
+        }else{
+            return 2;
+        }
+    }else{
+        if(player.pid == match.challenger_team.player1.pid){
+            return 1;
+        }else if(player.pid == match.challenger_team.player2.pid){
+            return 2;
+        }else if(player.pid == match.defender_team.player1.pid){
+            return 3;
+        }else{
+            return 4;
+        }
+    }
+
+    return 0;
+}
+
 static void update_serving_player(){
-    
+    int current_serving_num = get_player_side_number(match.match_progress.player_serving);
+    if((match.match_progress.current_display_score.challenger_num_points + match.match_progress.current_display_score.defender_num_points) % 2 == 0){    
+        if(current_serving_num){
+            if(match.match_type == singles){
+                if(current_serving_num == 1){
+                    set_serving_side(2);
+                }else{
+                    set_serving_side(1);
+                }
+            }else{
+                switch (current_serving_num)
+                {
+                case 1:
+                    set_serving_side(3);
+                    break;
+
+                case 2:
+                    set_serving_side(4);
+                    break;
+
+                case 3:
+                    set_serving_side(2);
+                    break;
+
+                case 4:
+                    set_serving_side(1);
+                    break;
+                
+                default:
+                    ESP_LOGE(TAG, "NOT VALID SERVING_PLAYER NUM!");
+                    break;
+                }
+            }
+        }else{
+            ESP_LOGE(TAG, "INVALID SERVING PLAYER!");
+        }
+    }
 }
 
 void print_scoreboard_info(void){
@@ -120,6 +179,8 @@ void print_current_score(void){
     ESP_LOGI(TAG, "Team 2 name is %s", match.defender_team.alias);
     ESP_LOGI(TAG, "Current challenger no of points %d", match.match_progress.current_display_score.challenger_num_points);
     ESP_LOGI(TAG, "Current defender no of points %d", match.match_progress.current_display_score.defender_num_points);
+    ESP_LOGI(TAG, "The player serving is %s", match.match_progress.player_serving.alias);
+    ESP_LOGI(TAG, "The total number of sets played is %d", match.match_result.number_of_sets_played);
 }
 
 int initalize_scoreboard(void){
@@ -139,6 +200,8 @@ int initalize_scoreboard(void){
     match.match_progress.current_set_num = 1;
     match.match_progress.challanger_num_of_won_sets = 0;
     match.match_progress.defender_num_of_won_sets= 0;
+    match.match_progress.player_serving = match.challenger_team.player1;
+    match.match_result.number_of_sets_played = 0;
 
     //Show P01 and P02 by default
     print_scoreboard_info();
@@ -163,6 +226,7 @@ void increment_score(team_side_enum player_side){
         break;
     }
 
+    update_serving_player();
     if(is_set_over()){
         store_set_result();
     }
@@ -254,5 +318,17 @@ int set_serving_side(int player_num){
         }
     }
 
+    return 0;
+}
+
+match_result_struct get_current_match_result(){
+    return match.match_result;
+}
+
+int set_match_result(match_result_struct match_result){
+    if((match_result.number_of_sets_played <= 7) && (match_result.number_of_sets_played >0)){
+        match.match_result = match_result;
+        return 1;
+    }
     return 0;
 }
