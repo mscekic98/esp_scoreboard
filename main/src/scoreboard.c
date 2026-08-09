@@ -172,6 +172,8 @@ void print_scoreboard_info(void){
     ESP_LOGI(TAG, "Player 2 number of won sets is %d", match.match_progress.defender_num_of_won_sets);
     ESP_LOGI(TAG, "Match type is %d", match.match_type);
     ESP_LOGI(TAG, "Set lasts to %d points", match.set_end);
+    ESP_LOGI(TAG, "The player serving is %s", match.match_progress.player_serving.alias);
+    ESP_LOGI(TAG, "The total number of sets played is %d", match.match_result.number_of_sets_played);
 }
 
 void print_current_score(void){

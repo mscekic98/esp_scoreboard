@@ -13,16 +13,16 @@
 /* Private function declarations */
 static int heart_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
                                  struct ble_gatt_access_ctxt *ctxt, void *arg);
-static int led_chr_access(uint16_t conn_handle, uint16_t attr_handle,
+static int scbd_write_chr_access(uint16_t conn_handle, uint16_t attr_handle,
                           struct ble_gatt_access_ctxt *ctxt, void *arg);
 
 /* Private variables */
 /* Heart rate service */
-static const ble_uuid16_t heart_rate_svc_uuid = BLE_UUID16_INIT(0x180D);
+//static const ble_uuid16_t heart_rate_svc_uuid = BLE_UUID16_INIT(0x180D);
 
 static uint8_t heart_rate_chr_val[2] = {0};
 static uint16_t heart_rate_chr_val_handle;
-static const ble_uuid16_t heart_rate_chr_uuid = BLE_UUID16_INIT(0x2A37);
+//static const ble_uuid16_t heart_rate_chr_uuid = BLE_UUID16_INIT(0x2A37);
 
 static uint16_t heart_rate_chr_conn_handle = 0;
 static bool heart_rate_chr_conn_handle_inited = false;
@@ -34,21 +34,32 @@ static uint16_t led_chr_val_handle;
 /*static const ble_uuid128_t led_chr_uuid =
     BLE_UUID128_INIT(0x23, 0xd1, 0xbc, 0xea, 0x5f, 0x78, 0x23, 0x15, 0xde, 0xef,
                      0x12, 0x12, 0x25, 0x15, 0x00, 0x00);*/
+static const ble_uuid128_t scoreboard_svc_base_uuid =
+    BLE_UUID128_INIT(0x57, 0x45, 0xc8, 0x16, 0xe0, 0xe1, 0x42, 0x1d,
+                     0xaa, 0x25, 0x4a, 0x61, 0xad, 0x22, 0x29, 0x0a);
+
+static const ble_uuid128_t scoreboard_svc_read_indicate_char_uuid = 
+    BLE_UUID128_INIT(0x57, 0x45, 0xc8, 0x16, 0xe0, 0xe1, 0x42, 0x1d,
+                     0xaa, 0x25, 0x4a, 0x61, 0xad, 0x22, 0x8B, 0x2F);
+
+static const ble_uuid128_t scoreboard_svc_write_char_uuid = 
+    BLE_UUID128_INIT(0x57, 0x45, 0xc8, 0x16, 0xe0, 0xe1, 0x42, 0x1d,
+                     0xaa, 0x25, 0x4a, 0x61, 0xad, 0x22, 0xD6, 0x4E);
 
 /* GATT services table */
 static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
     /* Heart rate service */
     {.type = BLE_GATT_SVC_TYPE_PRIMARY,
-     .uuid = &heart_rate_svc_uuid.u,
+     .uuid = &scoreboard_svc_base_uuid.u,
      .characteristics =
          (struct ble_gatt_chr_def[]){
              {/* Heart rate characteristic */
-              .uuid = &heart_rate_chr_uuid.u,
+              .uuid = &scoreboard_svc_read_indicate_char_uuid.u,
               .access_cb = heart_rate_chr_access,
               .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_INDICATE,
               .val_handle = &heart_rate_chr_val_handle},
-              {.uuid = BLE_UUID16_DECLARE(0xDEAD),
-                .access_cb = led_chr_access,
+              {.uuid = &scoreboard_svc_write_char_uuid.u,
+                .access_cb = scbd_write_chr_access,
                 .flags = BLE_GATT_CHR_F_WRITE,
                 .val_handle = &led_chr_val_handle},
              {
@@ -117,56 +128,32 @@ error:
     return BLE_ATT_ERR_UNLIKELY;
 }
 
-static int led_chr_access(uint16_t conn_handle, uint16_t attr_handle,
+static int scbd_write_chr_access(uint16_t conn_handle, uint16_t attr_handle,
                           struct ble_gatt_access_ctxt *ctxt, void *arg) {
     /* Local variables */
-    int rc;
+    //int rc;
+    printf("Data from the client: %.*s\n", ctxt->om->om_len, ctxt->om->om_data);
 
-    /* Handle access events */
-    /* Note: LED characteristic is write only */
-    switch (ctxt->op) {
+    char * data = (char *)ctxt->om->om_data;
 
-    /* Write characteristic event */
-    case BLE_GATT_ACCESS_OP_WRITE_CHR:
-        /* Verify connection handle */
-        if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
-            ESP_LOGI(TAG, "characteristic write; conn_handle=%d attr_handle=%d",
-                     conn_handle, attr_handle);
-        } else {
-            ESP_LOGI(TAG,
-                     "characteristic write by nimble stack; attr_handle=%d",
-                     attr_handle);
-        }
+    char local_buf[64];  // pick a size larger than your maximum expected command
+    uint16_t len = ctxt->om->om_len;
 
-        /* Verify attribute handle */
-        if (attr_handle == led_chr_val_handle) {
-            /* Verify access buffer length */
-            if (ctxt->om->om_len == 1) {
-                /* Turn the LED on or off according to the operation bit */
-                if (ctxt->om->om_data[0]) {
-                    led_on();
-                    ESP_LOGI(TAG, "led turned on!");
-                } else {
-                    led_off();
-                    ESP_LOGI(TAG, "led turned off!");
-                }
-            } else {
-                goto error;
-            }
-            return rc;
-        }
-        goto error;
+    // Copy up to local_buf size - 1, then null terminate
+    size_t copy_len = (len < sizeof(local_buf) - 1) ? len : (sizeof(local_buf) - 1);
+    memcpy(local_buf, ctxt->om->om_data, copy_len);
+    local_buf[copy_len] = '\0';
 
-    /* Unknown event */
-    default:
-        goto error;
+    if (strcmp(local_buf, (char *)"INC CHALLENGER\0")==0){
+        increment_score(challenger);
+        ESP_LOGI(TAG, "INCREMENTED CHALLENGER");
+    }else if(strcmp(local_buf, (char *)"INC DEFENDER\0") == 0){
+        increment_score(defender);
+        ESP_LOGI(TAG, "INCREMENTED DEFENDER");
     }
 
-error:
-    ESP_LOGE(TAG,
-             "unexpected access operation to led characteristic, opcode: %d",
-             ctxt->op);
-    return BLE_ATT_ERR_UNLIKELY;
+    print_current_score();
+    return 0;
 }
 
 /* Public functions */
