@@ -67,6 +67,8 @@ int set_serving_side(int player_num);
 match_result_struct get_current_match_result();
 int set_match_result(match_result_struct match_result);
 char *get_score_str();
+int reset_score();
+int set_number_of_sets_to_play(set_number_enum number_of_sets);
 
 
 #endif

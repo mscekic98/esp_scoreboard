@@ -153,6 +153,33 @@ static int scbd_write_chr_access(uint16_t conn_handle, uint16_t attr_handle,
     }else if(strcmp(local_buf, (char *)"INC DEFENDER\0") == 0){
         increment_score(defender);
         ESP_LOGI(TAG, "INCREMENTED DEFENDER");
+    }else if(strcmp(local_buf, (char *)"RESET\0") == 0){
+        initalize_scoreboard();
+        ESP_LOGI(TAG, "SCOREBOARD RESET");
+    }else if(strcmp(local_buf, (char *)"RESET SCORE\0") == 0){
+        reset_score();
+        ESP_LOGI(TAG, "SCORE RESET");
+    }else if(strcmp(local_buf, (char *)"SET DOUBLES\0") == 0){
+        set_match_type(doubles);
+        ESP_LOGI(TAG, "MATCH TYPE SET TO DOUBLES");
+    }else if(strcmp(local_buf, (char *)"SET SINGLES\0") == 0){
+        set_match_type(singles);
+        ESP_LOGI(TAG, "MATCH TYPE SET TO SINGLES");
+    }else if(strcmp(local_buf, (char *)"SET BO3\0") == 0){
+        set_number_of_sets_to_play(BO3);
+        ESP_LOGI(TAG, "MATCH SET TO BO3");
+    }else if(strcmp(local_buf, (char *)"SET BO5\0") == 0){
+        set_number_of_sets_to_play(BO5);
+        ESP_LOGI(TAG, "MATCH SET TO BO5");
+    }else if(strcmp(local_buf, (char *)"SET BO7\0") == 0){
+        set_number_of_sets_to_play(BO7);
+        ESP_LOGI(TAG, "MATCH SET TO BO7");
+    }else if(strcmp(local_buf, (char *)"SET OFFICIAL\0") == 0){
+        set_official_status(official);
+        ESP_LOGI(TAG, "THE MATCH IS NOW OFFICIAL");
+    }else if(strcmp(local_buf, (char *)"SET UNOFFICIAL\0") == 0){
+        set_official_status(not_official);
+        ESP_LOGI(TAG, "THE MATCH IS NOW UNOFFICIAL");
     }
 
     print_current_score();
