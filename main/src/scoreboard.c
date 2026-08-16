@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include "scoreboard.h"
 #include "common.h"
+#include "string.h"
 
 
 static player_struct player1 = {
@@ -37,7 +38,7 @@ static match_struct match;
 static int is_set_over(){
     int challenger_points = match.match_progress.current_display_score.challenger_num_points;
     int defender_points = match.match_progress.current_display_score.defender_num_points;
-    if((challenger_points > match.set_end) || ( defender_points > match.set_end)){
+    if((challenger_points >= match.set_end) || ( defender_points >= match.set_end)){
         if(abs(challenger_points - defender_points) >= 2){
             return 1;
         }
@@ -188,7 +189,9 @@ void print_current_score(void){
 int initalize_scoreboard(void){
 
     team1.player1 = player1;
+    team1.player2 = player3;
     team2.player1 = player2;
+    team2.player2 = player4;
 
     match.is_official = not_official;
     match.challenger_team = team1;
@@ -231,6 +234,8 @@ void increment_score(team_side_enum player_side){
     update_serving_player();
     if(is_set_over()){
         store_set_result();
+        match.match_progress.current_display_score.challenger_num_points = 0;
+        match.match_progress.current_display_score.defender_num_points = 0;
     }
 
     if(is_match_over()){
@@ -333,4 +338,34 @@ int set_match_result(match_result_struct match_result){
         return 1;
     }
     return 0;
+}
+
+char *get_score_str(){
+    static char greetings[500];
+    int challenger_points = match.match_progress.current_display_score.challenger_num_points;
+    int defender_points = match.match_progress.current_display_score.defender_num_points;
+    int challenger_number_of_sets = match.match_progress.challanger_num_of_won_sets;
+    int defender_number_of_sets = match.match_progress.defender_num_of_won_sets;
+    team_struct challenger_team = match.challenger_team;
+    team_struct defender_team = match.defender_team;
+    match_result_struct match_result = match.match_result;
+
+    snprintf(greetings,500, "%d:%d|%d:%d|%d|%s:%s|%s:%d:%d|%s:%d:%d|%s:%d:%d|%s:%d:%d|%d|%d|%d|%d|%d|SETS|%d|"
+    , challenger_points, defender_points, challenger_number_of_sets, defender_number_of_sets, match.match_progress.player_serving.pid
+    , challenger_team.alias, defender_team.alias, challenger_team.player1.alias, challenger_team.player1.pid 
+    , challenger_team.player1.elo, challenger_team.player2.alias, challenger_team.player2.pid, challenger_team.player2.elo
+    , defender_team.player1.alias, defender_team.player1.pid, defender_team.player1.elo
+    , defender_team.player2.alias, defender_team.player2.pid, defender_team.player2.elo
+    , match.number_of_sets, match.set_end, match.is_official, match.match_progress.current_set_num
+    , match.match_type, match.match_result.number_of_sets_played);
+
+    for(int i=0;i<match_result.number_of_sets_played; i++){
+        char set_char[50];
+        int set_challenger_num_points = match_result.set_result_array[i].challenger_num_points;
+        int set_defender_num_points = match_result.set_result_array[i].defender_num_points;
+        snprintf(set_char, 50, "%d:%d|", set_challenger_num_points, set_defender_num_points);
+        strncat(greetings, set_char, strlen(set_char));
+    }
+
+    return greetings;
 }

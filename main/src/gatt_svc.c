@@ -9,6 +9,7 @@
 #include "heart_rate.h"
 #include "led.h"
 #include "scoreboard.h"
+#include "string.h"
 
 /* Private function declarations */
 static int heart_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
@@ -89,6 +90,7 @@ static int heart_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
                                  struct ble_gatt_access_ctxt *ctxt, void *arg) {
     /* Local variables */
     int rc;
+    char* greetings = get_score_str();
 
     /* Handle access events */
     /* Note: Heart rate characteristic is read only */
@@ -108,9 +110,10 @@ static int heart_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
         /* Verify attribute handle */
         if (attr_handle == heart_rate_chr_val_handle) {
             /* Update access buffer value */
+            ESP_LOGI(TAG, "%s \n", greetings);
             heart_rate_chr_val[1] = get_heart_rate();
-            rc = os_mbuf_append(ctxt->om, &heart_rate_chr_val,
-                                sizeof(heart_rate_chr_val));
+            rc = os_mbuf_append(ctxt->om, greetings,
+                                strlen(greetings));
             return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
         }
         goto error;

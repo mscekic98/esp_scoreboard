@@ -66,6 +66,7 @@ int set_official_status(official_status_enum official_status);
 int set_serving_side(int player_num);
 match_result_struct get_current_match_result();
 int set_match_result(match_result_struct match_result);
+char *get_score_str();
 
 
 #endif
