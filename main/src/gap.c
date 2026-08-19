@@ -173,6 +173,11 @@ static int gap_event_handler(struct ble_gap_event *event, void *arg) {
                     rc);
                 return rc;
             }
+
+            rc = ble_gattc_exchange_mtu(event->connect.conn_handle, NULL, NULL);
+            if (rc != 0) {
+                ESP_LOGE("GAP", "MTU exchange failed, error: %d", rc);
+            }
         }
         /* Connection failed, restart advertising */
         else {

@@ -6,28 +6,26 @@
 /* Includes */
 #include "gatt_svc.h"
 #include "common.h"
-#include "heart_rate.h"
 #include "led.h"
 #include "scoreboard.h"
 #include "string.h"
 
 /* Private function declarations */
-static int heart_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
+static int scbd_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
                                  struct ble_gatt_access_ctxt *ctxt, void *arg);
 static int scbd_write_chr_access(uint16_t conn_handle, uint16_t attr_handle,
                           struct ble_gatt_access_ctxt *ctxt, void *arg);
 
 /* Private variables */
-/* Heart rate service */
-//static const ble_uuid16_t heart_rate_svc_uuid = BLE_UUID16_INIT(0x180D);
 
-static uint8_t heart_rate_chr_val[2] = {0};
-static uint16_t heart_rate_chr_val_handle;
-//static const ble_uuid16_t heart_rate_chr_uuid = BLE_UUID16_INIT(0x2A37);
 
-static uint16_t heart_rate_chr_conn_handle = 0;
-static bool heart_rate_chr_conn_handle_inited = false;
-static bool heart_rate_ind_status = false;
+//static uint8_t scbd_chr_val[2] = {0};
+static uint16_t scbd_chr_val_handle;
+
+
+static uint16_t scbd_chr_conn_handle = 0;
+static bool scbd_chr_conn_handle_inited = false;
+static bool scbd_ind_status = false;
 
 /* Automation IO service */
 //static const ble_uuid16_t auto_io_svc_uuid = BLE_UUID16_INIT(0x1815);
@@ -49,16 +47,16 @@ static const ble_uuid128_t scoreboard_svc_write_char_uuid =
 
 /* GATT services table */
 static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
-    /* Heart rate service */
+    /* Scoreboard service */
     {.type = BLE_GATT_SVC_TYPE_PRIMARY,
      .uuid = &scoreboard_svc_base_uuid.u,
      .characteristics =
          (struct ble_gatt_chr_def[]){
-             {/* Heart rate characteristic */
+             {/* Scoreboard characteristic */
               .uuid = &scoreboard_svc_read_indicate_char_uuid.u,
-              .access_cb = heart_rate_chr_access,
+              .access_cb = scbd_rate_chr_access,
               .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_INDICATE,
-              .val_handle = &heart_rate_chr_val_handle},
+              .val_handle = &scbd_chr_val_handle},
               {.uuid = &scoreboard_svc_write_char_uuid.u,
                 .access_cb = scbd_write_chr_access,
                 .flags = BLE_GATT_CHR_F_WRITE,
@@ -86,14 +84,14 @@ static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
 };
 
 /* Private functions */
-static int heart_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
+static int scbd_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
                                  struct ble_gatt_access_ctxt *ctxt, void *arg) {
     /* Local variables */
     int rc;
     char* greetings = get_score_str();
 
     /* Handle access events */
-    /* Note: Heart rate characteristic is read only */
+    /* Note: Scoreboard characteristic is read only */
     switch (ctxt->op) {
 
     /* Read characteristic event */
@@ -108,10 +106,9 @@ static int heart_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
         }
 
         /* Verify attribute handle */
-        if (attr_handle == heart_rate_chr_val_handle) {
+        if (attr_handle == scbd_chr_val_handle) {
             /* Update access buffer value */
             ESP_LOGI(TAG, "%s \n", greetings);
-            heart_rate_chr_val[1] = get_heart_rate();
             rc = os_mbuf_append(ctxt->om, greetings,
                                 strlen(greetings));
             return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
@@ -126,7 +123,7 @@ static int heart_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
 error:
     ESP_LOGE(
         TAG,
-        "unexpected access operation to heart rate characteristic, opcode: %d",
+        "unexpected access operation scoreboard characteristic, opcode: %d",
         ctxt->op);
     return BLE_ATT_ERR_UNLIKELY;
 }
@@ -183,15 +180,16 @@ static int scbd_write_chr_access(uint16_t conn_handle, uint16_t attr_handle,
     }
 
     print_current_score();
+    send_scoreboard_indication();
     return 0;
 }
 
 /* Public functions */
-void send_heart_rate_indication(void) {
-    if (heart_rate_ind_status && heart_rate_chr_conn_handle_inited) {
-        ble_gatts_indicate(heart_rate_chr_conn_handle,
-                           heart_rate_chr_val_handle);
-        ESP_LOGI(TAG, "heart rate indication sent!");
+void send_scoreboard_indication(void) {
+    if (scbd_ind_status && scbd_chr_conn_handle_inited) {
+        ble_gatts_indicate(scbd_chr_conn_handle,
+                           scbd_chr_val_handle);
+        ESP_LOGI(TAG, "scoreboard indication sent!");
     }
 }
 
@@ -240,7 +238,7 @@ void gatt_svr_register_cb(struct ble_gatt_register_ctxt *ctxt, void *arg) {
 
 /*
  *  GATT server subscribe event callback
- *      1. Update heart rate subscription status
+ *      1. Update scoreboard subscription status
  */
 
 void gatt_svr_subscribe_cb(struct ble_gap_event *event) {
@@ -254,11 +252,11 @@ void gatt_svr_subscribe_cb(struct ble_gap_event *event) {
     }
 
     /* Check attribute handle */
-    if (event->subscribe.attr_handle == heart_rate_chr_val_handle) {
-        /* Update heart rate subscription status */
-        heart_rate_chr_conn_handle = event->subscribe.conn_handle;
-        heart_rate_chr_conn_handle_inited = true;
-        heart_rate_ind_status = event->subscribe.cur_indicate;
+    if (event->subscribe.attr_handle == scbd_chr_val_handle) {
+        /* Update scoreboard subscription status */
+        scbd_chr_conn_handle = event->subscribe.conn_handle;
+        scbd_chr_conn_handle_inited = true;
+        scbd_ind_status = event->subscribe.cur_indicate;
     }
 }
 

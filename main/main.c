@@ -58,26 +58,26 @@ static void nimble_host_task(void *param) {
     vTaskDelete(NULL);
 }
 
-static void heart_rate_task(void *param) {
-    /* Task entry log */
+/*static void heart_rate_task(void *param) {
+ Task entry log 
     ESP_LOGI(TAG, "heart rate task has been started!");
 
-    /* Loop forever */
+    Loop forever 
     while (1) {
-        /* Update heart rate value every 1 second */
+         Update heart rate value every 1 second
         update_heart_rate();
         ESP_LOGI(TAG, "heart rate updated to %d", get_heart_rate());
 
-        /* Send heart rate indication if enabled */
-        send_heart_rate_indication();
+         Send heart rate indication if enabled 
+        //send_heart_rate_indication();
 
-        /* Sleep */
+         Sleep 
         vTaskDelay(HEART_RATE_TASK_PERIOD);
     }
 
-    /* Clean up at exit */
+     Clean up at exit 
     vTaskDelete(NULL);
-}
+}*/
 
 void app_main(void) {
     /* Local variables */
@@ -109,6 +109,11 @@ void app_main(void) {
         ESP_LOGE(TAG, "failed to initialize nimble stack, error code: %d ",
                  ret);
         return;
+    }
+
+    rc = ble_att_set_preferred_mtu(517);
+    if (rc != 0) {
+        ESP_LOGE("BLE", "Failed to set preferred MTU; rc=%d", rc);
     }
 
     /* GAP service initialization */
